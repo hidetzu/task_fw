@@ -1,8 +1,12 @@
 
+#include <stdio.h>
 #include <pthread.h>
 #include <common_capi.h>
 
-#include <taskFw_msgQueue.h>
+#include "taskFw_msgQueue.h"
+
+#include "taskFw_api_private.h"
+#include "taskFw_msgQueue_private.h"
 
 /**************************************************/
 /* Definitions                                    */
@@ -11,10 +15,6 @@
 /**************************************************/
 /* Prototype                                      */
 /**************************************************/
-struct _t_taskFw_msgQueue {
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-};
 
 /**************************************************/
 /* Global var                                     */
@@ -43,6 +43,9 @@ t_taskFw_msgQueue* taskFw_msgQueue_create(void)
         goto ERROR;
     }
 
+    inst->pTop = NULL;
+    inst->pTail = NULL;
+
     return inst;
 
 ERROR:
@@ -68,12 +71,41 @@ int taskFw_msgQueue_putMsg(t_taskFw_msgQueue* pThis,
     if( NULL == pMsg )
         return -1;
 
+    common_pthread_mutex_lock(&pThis->mutex);
+
+    if( NULL == pThis->pTop ) {
+        pThis->pTop = pMsg;
+        pThis->pTail = pThis->pTop;
+        pMsg->pNext = NULL;
+    } else {
+        pThis->pTail->pNext = pMsg;
+        pThis->pTail = pMsg;
+        pMsg->pNext = NULL;
+    }
+
+    common_pthread_cond_signal(&pThis->cond);
+    common_pthread_mutex_unlock(&pThis->mutex);
+
     return 0;
 }
 
 t_taskFw_taskMsg* taskFw_msgQueue_getMsg(t_taskFw_msgQueue* pThis)
 {
-    return NULL;
+    if( NULL == pThis)
+        return NULL;
+
+    t_taskFw_taskMsg* result = NULL;
+
+    common_pthread_mutex_lock(&pThis->mutex);
+    while( NULL == pThis->pTop )
+        common_pthread_cond_wait(&pThis->cond,&pThis->mutex);
+
+    result = pThis->pTop;
+    pThis->pTop = pThis->pTop->pNext;
+
+    common_pthread_mutex_unlock(&pThis->mutex);
+
+    return result;
 }
 
 /**************************************************/

@@ -1,18 +1,18 @@
 
 extern "C"{
     #include <taskFw.h>
+    #include <taskFw_msgQueue.h>
     #include <stdio.h>
+    #include <taskFw_api_private.h>
+    #include <taskFw_msgQueue_private.h>
 };
 
+#include <mock_unittest_capi.h>
 #include <CppUTest/TestHarness.h>
 #include <CppUTestExt/MockSupport.h>
 
 TEST_GROUP(TestTaskFwGroup)
 {
-    struct _taskFw {
-        int dummy;
-    };
-
 
     void setup()
     {
@@ -25,33 +25,116 @@ TEST_GROUP(TestTaskFwGroup)
     }
 };
 
-TEST(TestTaskFwGroup, createAndDelete)
+TEST(TestTaskFwGroup, createFailed)
 {
-    int test;
-    mock().expectOneCall("unittest_malloc")
-        .withParameter("size", (int)sizeof(struct _taskFw))
-        .andReturnValue((void*)&test);
+    mock_unittest_malloc(sizeof(struct _t_taskFw), NULL);
 
-    TaskFw* pThis = taskFw_create();
+    t_taskFw* pThis = taskFw_create();
 
-    POINTERS_EQUAL(&test, pThis);
-    mock().expectOneCall("unittest_free")
-        .withParameter("ptr", (void*)pThis);
+    POINTERS_EQUAL(NULL, pThis);
 
     taskFw_delete(pThis);
 }
 
-TEST(TestTaskFwGroup, createFailed)
+TEST(TestTaskFwGroup, createFailed2)
 {
-    mock().expectOneCall("unittest_malloc")
-        .withParameter("size", (int)sizeof(struct _taskFw))
-        .andReturnValue((void*)NULL);
+    t_taskFw taskFwObj;
 
-    TaskFw* pThis = taskFw_create();
+    mock_unittest_malloc(sizeof(t_taskFw), &taskFwObj);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), NULL);
+    mock_unittest_free(&taskFwObj);
 
+    t_taskFw* pThis = taskFw_create();
     POINTERS_EQUAL(NULL, pThis);
-    mock().expectOneCall("unittest_free")
-        .withParameter("ptr", (void*)pThis);
+    POINTERS_EQUAL(NULL, taskFwObj.pRequestQueue);
+}
+
+TEST(TestTaskFwGroup, startFailed)
+{
+    t_taskFw taskFwObj;
+    taskFwObj.pRequestQueue = NULL;
+
+    int ret = taskFw_startTask(NULL);
+    CHECK_EQUAL(-1, ret);
+
+    ret = taskFw_startTask(&taskFwObj);
+    CHECK_EQUAL(-1, ret);
+}
+
+TEST(TestTaskFwGroup, startFailed2)
+{
+    t_taskFw taskFwObj;
+    t_taskFw_msgQueue msgQueue;
+
+    mock_unittest_malloc(sizeof(t_taskFw), &taskFwObj);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
+    mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, 0);
+
+    t_taskFw* pThis = taskFw_create();
+    POINTERS_EQUAL(&taskFwObj, pThis);
+
+    mock_unittest_pthread_create(&taskFwObj.tid,
+        NULL,
+        taskFw_start_routine,
+        (void*)&taskFwObj, -1);
+
+
+    int ret = taskFw_startTask(&taskFwObj);
+    CHECK_EQUAL(-1, ret);
+
+
+    mock_unittest_free(&taskFwObj);
+    mock_unittest_free(&msgQueue);
+    mock_unittest_pthread_mutex_destroy(&msgQueue.mutex);
+    mock_unittest_pthread_cond_destroy(&msgQueue.cond);
+
+    taskFw_delete(pThis);
+}
+
+TEST(TestTaskFwGroup, putMsgFailed)
+{
+    int ret = 0;
+    t_taskFw_callMsg msg;
+    t_taskFw task;
+    ret = taskFw_putMsg(NULL,&msg, NULL);
+    CHECK_EQUAL(-1, ret);
+
+    ret = taskFw_putMsg(&task,NULL, NULL);
+    CHECK_EQUAL(-1, ret);
+
+}
+
+
+TEST(TestTaskFwGroup, createAndDelete)
+{
+    t_taskFw taskFwObj;
+    t_taskFw_msgQueue msgQueue;
+
+    mock_unittest_malloc(sizeof(t_taskFw), &taskFwObj);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
+    mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, 0);
+
+    t_taskFw* pThis = taskFw_create();
+    POINTERS_EQUAL(&taskFwObj, pThis);
+    POINTERS_EQUAL(&msgQueue, taskFwObj.pRequestQueue);
+
+    mock_unittest_pthread_create(&taskFwObj.tid,
+        NULL,
+        taskFw_start_routine,
+        (void*)&taskFwObj, 0);
+
+
+    int ret = taskFw_startTask(&taskFwObj);
+    CHECK_EQUAL(0, ret);
+
+
+
+    mock_unittest_free(&taskFwObj);
+    mock_unittest_free(&msgQueue);
+    mock_unittest_pthread_mutex_destroy(&msgQueue.mutex);
+    mock_unittest_pthread_cond_destroy(&msgQueue.cond);
 
     taskFw_delete(pThis);
 }

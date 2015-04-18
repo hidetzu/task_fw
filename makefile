@@ -13,16 +13,20 @@ MAKE   = $(AT)make --no-print-directory
 USE_DEBUG=yes
 USE_COV=yes
 
-TARGET=taskFw
 
 ############
 # project dir settings
+TARGET=taskFw
 PROJECT_TOP=.
+PROJECT_SRC_DIR=$(shell find src -type d)
+
 OUTPUT_DIR=$(PROJECT_TOP)/work
 BIN_DIR=$(OUTPUT_DIR)/bin
 MAKE_DIR=$(PROJECT_TOP)/build
 
-SRC_DIR=$(shell find src -type d)
+
+
+
 
 INCLUDES  = -I./include
 CFLAGS    = -Wall
@@ -48,7 +52,7 @@ UNITTEST_TARGET=$(TARGET)_CppUTest_tests
 # helpers
 include build/helpers.mk
 
-SRCS += $(call get_src_from_dir_list, $(SRC_DIR))
+SRCS += $(call get_src_from_dir_list, $(PROJECT_SRC_DIR))
 SRCS += main.c
 
 objects = $(call src_to_o, $(SRCS))
@@ -68,7 +72,7 @@ $(OUTPUT_DIR)/%.o:%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
 
 lcov:
-	$(MAKE) SRC_DIR="$(SRC_DIR)" OUTPUT_DIR="$(OUTPUT_DIR)" -f $(MAKE_DIR)/lcov.mk
+	$(MAKE) SRC_DIR="$(PROJECT_SRC_DIR)" OUTPUT_DIR="$(OUTPUT_DIR)" -f $(MAKE_DIR)/lcov.mk
 
 clean:
 	$(RM) $(OUTPUT_DIR) $(TARGET)
@@ -88,7 +92,7 @@ tags:
 
 unittest:
 	$(MKDIR) $(UNITTEST_WORK)/lib
-	make TARGET=$(TARGET) PROJECT_TOP=$(PROJECT_TOP) UNITTEST_TOP=$(UNITTEST_TOP) -f unittest/MakefileCppUTest.mk
+	$(MAKE) TARGET=$(TARGET) PROJECT_TOP=$(PROJECT_TOP) UNITTEST_TOP=$(UNITTEST_TOP) PROJECT_SRC_DIR="$(PROJECT_SRC_DIR)" -f unittest/MakefileCppUTest.mk
 
 unittest_clean:
 	$(RM) $(UNITTEST_WORK) $(UNITTEST_TARGET)
