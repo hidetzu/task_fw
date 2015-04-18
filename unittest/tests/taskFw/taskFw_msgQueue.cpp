@@ -1,5 +1,7 @@
 
 extern "C"{
+    #include <signal.h>
+    #include <unistd.h>
     #include <taskFw_msgQueue.h>
 };
 
@@ -45,11 +47,43 @@ static void mock_unittest_pthread_cond_destroy(pthread_cond_t* cond) {
         .withParameter("cond", cond);
 }
 
+static void mock_unittest_pthread_mutex_lock(pthread_mutex_t* mutex) {
+    mock().expectOneCall("unittest_pthread_mutex_lock")
+        .withParameter("mutex", mutex);
+}
+
+static void mock_unittest_pthread_mutex_unlock(pthread_mutex_t* mutex) {
+    mock().expectOneCall("unittest_pthread_mutex_unlock")
+        .withParameter("mutex", mutex);
+}
+
+static void mock_unittest_pthread_cond_signal(pthread_cond_t* cond) {
+    mock().expectOneCall("unittest_pthread_cond_signal")
+        .withParameter("cond", cond);
+}
+
+static void mock_unittest_pthread_cond_wait(pthread_cond_t* cond,
+    pthread_mutex_t* mutex) {
+    mock().expectOneCall("unittest_pthread_cond_wait")
+        .withParameter("cond", cond)
+        .withParameter("mutex", mutex);
+}
+
+static t_taskFw_msgQueue* pWaitMsgQueue;
+static t_taskFw_taskMsg waitMsg;
+
+static void test_signal_handler(int sig) {
+    int ret = taskFw_msgQueue_putMsg(pWaitMsgQueue, &waitMsg);
+    CHECK_EQUAL(0, ret);
+}
+
 TEST_GROUP(TestTaskFw_msgQueue)
 {
     struct _t_taskFw_msgQueue {
         pthread_mutex_t mutex;
         pthread_cond_t cond;
+        t_taskFw_taskMsg* pTop;
+        t_taskFw_taskMsg* pTail;
     };
 
     void setup()
@@ -115,6 +149,8 @@ TEST(TestTaskFw_msgQueue, createAndDelete)
     t_taskFw_msgQueue* pThis= taskFw_msgQueue_create();
 
     POINTERS_EQUAL(&msgQueue, pThis);
+    POINTERS_EQUAL(NULL, msgQueue.pTop);
+    POINTERS_EQUAL(NULL, msgQueue.pTail);
 
     mock_unittest_free(&msgQueue);
     mock_unittest_pthread_mutex_destroy(&msgQueue.mutex);
@@ -123,7 +159,30 @@ TEST(TestTaskFw_msgQueue, createAndDelete)
     taskFw_msgQueue_delete(pThis);
 }
 
-TEST(TestTaskFw_msgQueue, QueueAddOneMsg)
+TEST(TestTaskFw_msgQueue, putMsgFailed1)
+{
+    int ret = 0;
+    struct _t_taskFw_msgQueue msgQueue;
+
+    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
+    mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, 0);
+
+    t_taskFw_msgQueue* pThis= taskFw_msgQueue_create();
+
+    ret = taskFw_msgQueue_putMsg(pThis, NULL);
+    CHECK_EQUAL(-1, ret );
+
+}
+
+TEST(TestTaskFw_msgQueue, putMsgFailed2)
+{
+    t_taskFw_taskMsg msg;
+    int ret = taskFw_msgQueue_putMsg(NULL, &msg);
+    CHECK_EQUAL(-1, ret );
+}
+
+TEST(TestTaskFw_msgQueue, QueueAddMsgs)
 {
     struct _t_taskFw_msgQueue msgQueue;
 
@@ -135,21 +194,74 @@ TEST(TestTaskFw_msgQueue, QueueAddOneMsg)
     POINTERS_EQUAL(&msgQueue, pThis);
 
     int ret = 0;
-
     t_taskFw_taskMsg msg;
-    msg.type = 1;
+
+    mock_unittest_pthread_mutex_lock(&msgQueue.mutex);
+    mock_unittest_pthread_cond_signal(&msgQueue.cond);
+    mock_unittest_pthread_mutex_unlock(&msgQueue.mutex);
+
     ret = taskFw_msgQueue_putMsg(pThis, &msg);
     CHECK_EQUAL(0, ret );
 
-    ret = taskFw_msgQueue_putMsg(pThis, NULL);
-    CHECK_EQUAL(-1, ret );
+    t_taskFw_taskMsg msg1;
 
-    ret = taskFw_msgQueue_putMsg(NULL, &msg);
-    CHECK_EQUAL(-1, ret );
+    mock_unittest_pthread_mutex_lock(&msgQueue.mutex);
+    mock_unittest_pthread_cond_signal(&msgQueue.cond);
+    mock_unittest_pthread_mutex_unlock(&msgQueue.mutex);
+
+    ret = taskFw_msgQueue_putMsg(pThis, &msg1);
+    CHECK_EQUAL(0, ret );
 
 
-    POINTERS_EQUAL( NULL, taskFw_msgQueue_getMsg(NULL));
-    POINTERS_EQUAL( NULL, taskFw_msgQueue_getMsg(pThis));
+    mock_unittest_pthread_mutex_lock(&msgQueue.mutex);
+    mock_unittest_pthread_mutex_unlock(&msgQueue.mutex);
+
+    t_taskFw_taskMsg* pResult = taskFw_msgQueue_getMsg(pThis);
+    CHECK_EQUAL(&msg, pResult);
+
+    mock_unittest_pthread_mutex_lock(&msgQueue.mutex);
+    mock_unittest_pthread_mutex_unlock(&msgQueue.mutex);
+
+    t_taskFw_taskMsg* pResult1 = taskFw_msgQueue_getMsg(pThis);
+    CHECK_EQUAL(&msg1, pResult1);
+
+    mock_unittest_free(&msgQueue);
+    mock_unittest_pthread_mutex_destroy(&msgQueue.mutex);
+    mock_unittest_pthread_cond_destroy(&msgQueue.cond);
+
+    taskFw_msgQueue_delete(pThis);
+}
+
+TEST(TestTaskFw_msgQueue, QueueAddMsg2)
+{
+    struct _t_taskFw_msgQueue msgQueue;
+
+    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
+    mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, 0);
+
+    t_taskFw_msgQueue* pThis= taskFw_msgQueue_create();
+    POINTERS_EQUAL(&msgQueue, pThis);
+
+
+    t_taskFw_taskMsg* pResult = NULL;
+    pWaitMsgQueue = pThis;
+
+    signal(SIGALRM, test_signal_handler);
+    alarm(5);
+
+
+    mock_unittest_pthread_mutex_lock(&msgQueue.mutex);
+    mock_unittest_pthread_cond_wait(&msgQueue.cond, &msgQueue.mutex);
+    mock_unittest_pthread_mutex_unlock(&msgQueue.mutex);
+
+    mock_unittest_pthread_mutex_lock(&msgQueue.mutex);
+    mock_unittest_pthread_cond_signal(&msgQueue.cond);
+    mock_unittest_pthread_mutex_unlock(&msgQueue.mutex);
+
+    pResult = taskFw_msgQueue_getMsg(pThis);
+    CHECK_EQUAL(&waitMsg, pResult);
+
 
     mock_unittest_free(&msgQueue);
     mock_unittest_pthread_mutex_destroy(&msgQueue.mutex);

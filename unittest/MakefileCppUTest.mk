@@ -4,15 +4,16 @@
 SILENCE = @
 
 ifndef TARGET
-  TARGET=sample
+  $(error "TARGET is empty")
 endif
 
+
 ifndef PROJECT_TOP
-  PROJECT_TOP=..
+  $(error "PROJECT_TOP is empty")
 endif
 
 ifndef UNITTEST_TOP
-  UNITTEST_TOP=.
+  $(error "UNITTEST_TOP is empty")
 endif
 
 ifndef UNITTEST_WORK 
@@ -20,6 +21,9 @@ ifndef UNITTEST_WORK
 else
   CPPUTEST_OBJS_DIR=$(UNITTEST_WORK)
 endif
+
+
+
 
 CPPUTEST_LIB_DIR=$(CPPUTEST_OBJS_DIR)/lib
 
@@ -32,9 +36,10 @@ CPPUTEST_HOME=$(UNITTEST_TOP)/cpputest-3.6
 CPP_PLATFORM = Gcc
 PROJECT_HOME_DIR=$(PROJECT_TOP)
 
-SRC_DIRS = \
-	$(PROJECT_HOME_DIR)/src \
-	$(PROJECT_HOME_DIR)/src/taskFw \
+SRC_DIRS+=$(PROJECT_SRC_DIR)
+#SRC_DIRS = \
+#	$(PROJECT_HOME_DIR)/src \
+#	$(PROJECT_HOME_DIR)/src/taskFw \
 #	src/ \
 
 TEST_SRC_DIRS = \
@@ -52,10 +57,11 @@ MOCKS_SRC_DIRS = \
 	
 CPPUTEST_USE_EXTENSIONS = Y
 CPPUTEST_USE_GCOV = Y
-CPPUTEST_WARNINGFLAGS = -Wall -Wswitch-default -Werror 
 CPPUTEST_CFLAGS = -std=c99 
 CPPUTEST_CFLAGS += -DUNITTEST_ENABLE
-CPPUTEST_CFLAGS += -Wall -Wstrict-prototypes -pedantic
+CPPUTEST_CFLAGS += -Wall -Wstrict-prototypes
+CPPUTEST_WARNINGFLAGS = -Wall -Werror -Wswitch-default 
+CPPUTEST_WARNINGFLAGS += -Wconversion -Wswitch-enum 
 LD_LIBRARIES = -lpthread
 	
   

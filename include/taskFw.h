@@ -5,6 +5,14 @@
 /* Definitions                                    */
 /**************************************************/
 typedef struct _taskFw TaskFw;
+typedef struct _t_taskFw_taskMsg t_taskFw_taskMsg;
+
+typedef void (*t_taskMessageHandler)(t_taskFw_taskMsg* pMsg);
+
+struct _t_taskFw_taskMsg {
+    struct _t_taskFw_taskMsg* pNext;
+    t_taskMessageHandler msgHandler;
+};
 
 /**************************************************/
 /* Prototype                                      */

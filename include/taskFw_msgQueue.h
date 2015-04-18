@@ -1,12 +1,11 @@
 #ifndef __TASKFW_MSGQUEUE_H__
 #define __TASKFW_MSGQUEUE_H__
 
+#include <taskFw.h>
+
 /**************************************************/
 /* Definitions                                    */
 /**************************************************/
-typedef struct _t_taskFw_taskMsg {
-    int type;
-}t_taskFw_taskMsg;
 
 typedef struct _t_taskFw_msgQueue t_taskFw_msgQueue;
 
