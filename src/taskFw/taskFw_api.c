@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <common_capi.h>
 
 #include <taskFw.h>
 
@@ -6,7 +6,9 @@
 /* Definitions                                    */
 /**************************************************/
 struct _taskFw {
+
     int dummy;
+
 };
 
 /**************************************************/
@@ -22,13 +24,13 @@ struct _taskFw {
 /**************************************************/
 TaskFw* taskFw_create(void)
 {
-    TaskFw* pInst =(TaskFw*)malloc(sizeof(TaskFw));
+    TaskFw* pInst =(TaskFw*)common_malloc(sizeof(TaskFw));
     return pInst;
 }
 
 void taskFw_delete(TaskFw* pThis)
 {
-    free(pThis);
+    common_free(pThis);
 }
 
 /**************************************************/

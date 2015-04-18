@@ -1,7 +1,10 @@
-CC     = gcc
 AT     = @
-MKDIR  = mkdir -p
-RM     = rm -rf
+
+CC     = gcc
+ECHO   = $(AT)echo
+MKDIR  = $(AT)mkdir -p
+RM     = $(AT)rm -rf
+MAKE   = $(AT)make --no-print-directory 
 
 
 ##################
@@ -12,6 +15,14 @@ USE_COV=yes
 
 TARGET=taskFw
 
+############
+# project dir settings
+PROJECT_TOP=.
+OUTPUT_DIR=$(PROJECT_TOP)/work
+BIN_DIR=$(OUTPUT_DIR)/bin
+MAKE_DIR=$(PROJECT_TOP)/build
+
+SRC_DIR=$(shell find src -type d)
 
 INCLUDES  = -I./include
 CFLAGS    = -Wall
@@ -26,17 +37,12 @@ CFLAGS += -fprofile-arcs -ftest-coverage
 LDFLAGS+= -fprofile-arcs
 endif
 
-#SRC_DIR=$(shell find src -name *.c)
-SRC_DIR=src\
-   src/taskFw\
-#  src  \
 
 ############
-# project dir settings
-PROJECT_TOP=$(shell pwd)
-MAKE_DIR=$(PROJECT_TOP)/build
-OUTPUT_DIR=$(PROJECT_TOP)/work
-BIN_DIR=$(OUTPUT_DIR)/bin
+# unittest dir settings
+UNITTEST_TOP=$(PROJECT_TOP)/unittest
+UNITTEST_WORK=$(PROJECT_TOP)/unittest_work
+UNITTEST_TARGET=$(TARGET)_CppUTest_tests
 
 ############
 # helpers
@@ -52,20 +58,27 @@ objects = $(call src_to_o, $(SRCS))
 all: $(BIN_DIR)/$(TARGET)
 
 $(BIN_DIR)/$(TARGET):$(objects)
-	@echo linking $(notdir $<)
-	@mkdir -p $(dir $@)
+	$(ECHO) linking $(notdir $<)
+	$(MKDIR) $(dir $@)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(OUTPUT_DIR)/%.o:%.c
-	@echo compiling $(notdir $<)
-	@mkdir -p $(dir $@)
+	$(ECHO) compiling $(notdir $<)
+	$(MKDIR) $(dir $@)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
 
 lcov:
-	make --no-print-directory SRC_DIR="$(SRC_DIR)" OUTPUT_DIR="$(OUTPUT_DIR)" -f $(MAKE_DIR)/lcov.mk
+	$(MAKE) SRC_DIR="$(SRC_DIR)" OUTPUT_DIR="$(OUTPUT_DIR)" -f $(MAKE_DIR)/lcov.mk
 
 clean:
-	@rm -rf $(OUTPUT_DIR) $(TARGET)
+	$(RM) $(OUTPUT_DIR) $(TARGET)
+
+############
+# utils
+
+tags:
+	$(RM) tags
+	@find . -name "*.[ch]" | xargs ctags
 
 
 ###################
@@ -74,7 +87,9 @@ clean:
 .PHONY: unittest unittest_clean
 
 unittest:
-	cd unittest; make TARGET=$(TARGET) -f MakefileCppUTest.mk
+	$(MKDIR) $(UNITTEST_WORK)/lib
+	make TARGET=$(TARGET) PROJECT_TOP=$(PROJECT_TOP) UNITTEST_TOP=$(UNITTEST_TOP) -f unittest/MakefileCppUTest.mk
 
 unittest_clean:
-	cd unittest; make TARGET=$(TARGET) -f MakefileCppUTest.mk clean
+	$(RM) $(UNITTEST_WORK) $(UNITTEST_TARGET)
+
