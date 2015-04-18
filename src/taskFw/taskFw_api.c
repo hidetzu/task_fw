@@ -5,6 +5,9 @@
 /**************************************************/
 /* Definitions                                    */
 /**************************************************/
+struct _taskFw {
+    int dummy;
+};
 
 /**************************************************/
 /* Prototype                                      */
@@ -19,12 +22,13 @@
 /**************************************************/
 TaskFw* taskFw_create(void)
 {
-    return NULL;
+    TaskFw* pInst =(TaskFw*)malloc(sizeof(TaskFw));
+    return pInst;
 }
 
 void taskFw_delete(TaskFw* pThis)
 {
-
+    free(pThis);
 }
 
 /**************************************************/

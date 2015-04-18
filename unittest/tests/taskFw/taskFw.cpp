@@ -8,8 +8,8 @@ TEST_GROUP(TestTaskFwGroup)
 {
 };
 
-TEST(TestTaskFwGroup, FirstTest)
+TEST(TestTaskFwGroup, createAndDelete)
 {
-    TaskFw* pInst = taskFw_create();
-    POINTERS_EQUAL(NULL, pInst);
+    TaskFw* pThis = taskFw_create();
+    taskFw_delete(pThis);
 }
