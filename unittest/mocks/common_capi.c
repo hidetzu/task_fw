@@ -4,6 +4,7 @@
 #include "CppUTestExt/MockSupport_c.h"
 
 int wait_signale = 0;
+int pthread_create_start = 0;
 
 void* unittest_malloc(size_t size)
 {

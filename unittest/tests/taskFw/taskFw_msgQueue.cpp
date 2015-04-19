@@ -3,71 +3,13 @@ extern "C"{
     #include <signal.h>
     #include <unistd.h>
     #include <taskFw_msgQueue.h>
+    #include <taskFw_api_private.h>
+    #include <taskFw_msgQueue_private.h>
 };
 
+#include <mock_unittest_capi.h>
 #include <CppUTest/TestHarness.h>
 #include <CppUTestExt/MockSupport.h>
-
-static void mock_unittest_malloc(int size, void* pReturn) {
-    mock().expectOneCall("unittest_malloc")
-        .withParameter("size", (int)size)
-        .andReturnValue((void*)pReturn);
-}
-
-static void mock_unittest_free(void* pObject) {
-    mock().expectOneCall("unittest_free")
-        .withParameter("ptr", pObject);
-}
-
-static void mock_unittest_pthread_mutex_init(pthread_mutex_t* mutex,
-        pthread_mutexattr_t* attr,
-        int returnValue) {
-    mock().expectOneCall("unittest_pthread_mutex_init")
-        .withParameter("mutex", mutex)
-        .withParameter("mutexattr", attr)
-        .andReturnValue(returnValue);
-}
-
-static void mock_unittest_pthread_mutex_destroy(pthread_mutex_t* mutex) {
-    mock().expectOneCall("unittest_pthread_mutex_destroy")
-        .withParameter("mutex", mutex);
-}
-
-static void mock_unittest_pthread_cond_init(pthread_cond_t* cond,
-        pthread_condattr_t* attr,
-        int returnValue) {
-    mock().expectOneCall("unittest_pthread_cond_init")
-        .withParameter("cond", cond)
-        .withParameter("attr", (void*)NULL)
-        .andReturnValue(returnValue);
-}
-
-static void mock_unittest_pthread_cond_destroy(pthread_cond_t* cond) {
-    mock().expectOneCall("unittest_pthread_cond_destroy")
-        .withParameter("cond", cond);
-}
-
-static void mock_unittest_pthread_mutex_lock(pthread_mutex_t* mutex) {
-    mock().expectOneCall("unittest_pthread_mutex_lock")
-        .withParameter("mutex", mutex);
-}
-
-static void mock_unittest_pthread_mutex_unlock(pthread_mutex_t* mutex) {
-    mock().expectOneCall("unittest_pthread_mutex_unlock")
-        .withParameter("mutex", mutex);
-}
-
-static void mock_unittest_pthread_cond_signal(pthread_cond_t* cond) {
-    mock().expectOneCall("unittest_pthread_cond_signal")
-        .withParameter("cond", cond);
-}
-
-static void mock_unittest_pthread_cond_wait(pthread_cond_t* cond,
-    pthread_mutex_t* mutex) {
-    mock().expectOneCall("unittest_pthread_cond_wait")
-        .withParameter("cond", cond)
-        .withParameter("mutex", mutex);
-}
 
 static t_taskFw_msgQueue* pWaitMsgQueue;
 static t_taskFw_taskMsg waitMsg;
@@ -79,13 +21,6 @@ static void test_signal_handler(int sig) {
 
 TEST_GROUP(TestTaskFw_msgQueue)
 {
-    struct _t_taskFw_msgQueue {
-        pthread_mutex_t mutex;
-        pthread_cond_t cond;
-        t_taskFw_taskMsg* pTop;
-        t_taskFw_taskMsg* pTail;
-    };
-
     void setup()
     {
     }
@@ -97,9 +32,10 @@ TEST_GROUP(TestTaskFw_msgQueue)
     }
 };
 
+
 TEST(TestTaskFw_msgQueue, createFailed)
 {
-    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), NULL);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), NULL);
 
     t_taskFw_msgQueue* pThis= taskFw_msgQueue_create();
     POINTERS_EQUAL(NULL, pThis);
@@ -107,9 +43,9 @@ TEST(TestTaskFw_msgQueue, createFailed)
 
 TEST(TestTaskFw_msgQueue, createMutextError)
 {
-    struct _t_taskFw_msgQueue msgQueue;
+    t_taskFw_msgQueue msgQueue;
 
-    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), &msgQueue);
     mock_unittest_pthread_mutex_init(&msgQueue.mutex,
             NULL, -1);
     mock_unittest_free(&msgQueue);
@@ -120,9 +56,9 @@ TEST(TestTaskFw_msgQueue, createMutextError)
 
 TEST(TestTaskFw_msgQueue, createCondError)
 {
-    struct _t_taskFw_msgQueue msgQueue;
+    t_taskFw_msgQueue msgQueue;
 
-    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), &msgQueue);
     mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
     mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, -1);
     mock_unittest_pthread_mutex_destroy(&msgQueue.mutex);
@@ -140,9 +76,9 @@ TEST(TestTaskFw_msgQueue, deleteNullObject)
 
 TEST(TestTaskFw_msgQueue, createAndDelete)
 {
-    struct _t_taskFw_msgQueue msgQueue;
+    t_taskFw_msgQueue msgQueue;
 
-    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), &msgQueue);
     mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
     mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, 0);
 
@@ -162,9 +98,9 @@ TEST(TestTaskFw_msgQueue, createAndDelete)
 TEST(TestTaskFw_msgQueue, putMsgFailed1)
 {
     int ret = 0;
-    struct _t_taskFw_msgQueue msgQueue;
+    t_taskFw_msgQueue msgQueue;
 
-    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), &msgQueue);
     mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
     mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, 0);
 
@@ -182,11 +118,12 @@ TEST(TestTaskFw_msgQueue, putMsgFailed2)
     CHECK_EQUAL(-1, ret );
 }
 
+
 TEST(TestTaskFw_msgQueue, QueueAddMsgs)
 {
-    struct _t_taskFw_msgQueue msgQueue;
+    t_taskFw_msgQueue msgQueue;
 
-    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), &msgQueue);
     mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
     mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, 0);
 
@@ -234,9 +171,9 @@ TEST(TestTaskFw_msgQueue, QueueAddMsgs)
 
 TEST(TestTaskFw_msgQueue, QueueAddMsg2)
 {
-    struct _t_taskFw_msgQueue msgQueue;
+    t_taskFw_msgQueue msgQueue;
 
-    mock_unittest_malloc(sizeof(struct _t_taskFw_msgQueue), &msgQueue);
+    mock_unittest_malloc(sizeof(t_taskFw_msgQueue), &msgQueue);
     mock_unittest_pthread_mutex_init(&msgQueue.mutex, NULL, 0);
     mock_unittest_pthread_cond_init(&msgQueue.cond, NULL, 0);
 

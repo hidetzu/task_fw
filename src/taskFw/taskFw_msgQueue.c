@@ -1,8 +1,12 @@
 
+#include <stdio.h>
 #include <pthread.h>
 #include <common_capi.h>
 
-#include <taskFw_msgQueue.h>
+#include "taskFw_msgQueue.h"
+
+#include "taskFw_api_private.h"
+#include "taskFw_msgQueue_private.h"
 
 /**************************************************/
 /* Definitions                                    */
@@ -11,12 +15,6 @@
 /**************************************************/
 /* Prototype                                      */
 /**************************************************/
-struct _t_taskFw_msgQueue {
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-    t_taskFw_taskMsg* pTop;
-    t_taskFw_taskMsg* pTail;
-};
 
 /**************************************************/
 /* Global var                                     */

@@ -6,8 +6,19 @@
 /**************************************************/
 /* Definitions                                    */
 /**************************************************/
-
 typedef struct _t_taskFw_msgQueue t_taskFw_msgQueue;
+typedef struct _t_taskFw_taskMsg t_taskFw_taskMsg;
+
+typedef void (*t_taskMessageHandler)(t_taskFw_taskMsg* pMsg);
+
+struct _t_taskFw_taskMsg {
+    t_taskFw_callMsg* pCallMsg;
+    t_taskFw_callMsgHandler callMsgHandler;
+
+    struct _t_taskFw_taskMsg* pNext;
+    t_taskMessageHandler msgHandler;
+};
+
 
 /**************************************************/
 /* Prototype                                      */

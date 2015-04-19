@@ -43,6 +43,7 @@ SRC_DIRS+=$(PROJECT_SRC_DIR)
 #	src/ \
 
 TEST_SRC_DIRS = \
+	$(UNITTEST_TOP)/src \
 	$(UNITTEST_TOP)/tests \
 	$(UNITTEST_TOP)/tests/taskFw \
 	$(UNITTEST_TOP)/stub \
@@ -50,7 +51,9 @@ TEST_SRC_DIRS = \
 	
 INCLUDE_DIRS =\
   $(CPPUTEST_HOME)/include\
+  $(UNITTEST_TOP)/include\
   $(PROJECT_HOME_DIR)/include\
+  $(PROJECT_HOME_DIR)/src/taskFw\
 
 MOCKS_SRC_DIRS = \
 	$(UNITTEST_TOP)/mocks
