@@ -4,9 +4,7 @@
 #include <common_capi.h>
 
 #include "taskFw_msgQueue.h"
-
 #include "taskFw_api_private.h"
-#include "taskFw_msgQueue_private.h"
 
 /**************************************************/
 /* Definitions                                    */

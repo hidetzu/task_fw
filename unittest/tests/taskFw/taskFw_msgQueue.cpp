@@ -4,7 +4,6 @@ extern "C"{
     #include <unistd.h>
     #include <taskFw_msgQueue.h>
     #include <taskFw_api_private.h>
-    #include <taskFw_msgQueue_private.h>
 };
 
 #include <mock_unittest_capi.h>

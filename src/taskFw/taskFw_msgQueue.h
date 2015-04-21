@@ -11,13 +11,28 @@ typedef struct _t_taskFw_taskMsg t_taskFw_taskMsg;
 
 typedef void (*t_taskMessageHandler)(t_taskFw_taskMsg* pMsg);
 
+typedef enum _e_taskCtrl_msgType {
+    TASKCTRL_MSGTYPE_INIT=0,
+    TASKCTRL_MSGTYPE_EXECUTE,
+    TASKCTRL_MSGTYPE_SHUTDOWN,
+}e_taskCtrl_msgType;
+
 struct _t_taskFw_taskMsg {
+    e_taskCtrl_msgType msgType;
     t_taskFw_callMsg* pCallMsg;
     t_taskFw_callMsgHandler callMsgHandler;
 
     struct _t_taskFw_taskMsg* pNext;
     t_taskMessageHandler msgHandler;
 };
+
+struct _t_taskFw_msgQueue {
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    t_taskFw_taskMsg* pTop;
+    t_taskFw_taskMsg* pTail;
+};
+
 
 
 /**************************************************/
